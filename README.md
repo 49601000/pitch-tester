@@ -21,7 +21,7 @@ PitchPadは、500Hzから600Hzまでの仮ピッチ音を鳴らして、VOICEVOX
 
 ## 使い方
 
-1. `Tool4-pitchpad.html` をブラウザで開きます。
+1. `index.html` をブラウザで開きます。
 2. 仮ピッチパッドのHzボタンを押して、確認したい高さの音を鳴らします。
 3. 必要に応じて音の長さを切り替えます。
 4. 採用したい値が決まったら「採用値をコピー」を押します。
@@ -37,19 +37,28 @@ PitchPadは、500Hzから600Hzまでの仮ピッチ音を鳴らして、VOICEVOX
 
 `apple-touch-icon-ptester.png` は、iPhone用のホーム画面アイコンとして設定されています。
 
-Safariで `Tool4-pitchpad.html` を開き、共有メニューから「ホーム画面に追加」を選ぶと、PitchPadのアイコン付きショートカットとして使えます。
+Safariで `index.html` を開き、共有メニューから「ホーム画面に追加」を選ぶと、PitchPadのアイコン付きショートカットとして使えます。
 
 ## ファイル構成
 
 ```text
 .
-├── Tool4-pitchpad.html
+├── index.html
 ├── apple-touch-icon-ptester.png
 └── README.md
 ```
 
+## iPhone Safariで音が鳴らない場合
+
+iPhone Safariでは、ブラウザの仕様により、ユーザーのタップなど明示的な操作があるまでWeb Audioの音が出ません。
+
+このツールでは最初のタップで音声を有効化する処理を入れています。初回だけ鳴らない場合は、Hzボタンをもう一度タップしてください。
+
+それでも鳴らない場合は、iPhone本体の音量、消音モード、接続中のBluetooth機器を確認してください。
 ## 注意
 
 PitchPadはVOICEVOXのイントネーションを完全再現するツールではありません。
 
 あくまで再生成前にピッチの方向感を仮確認し、調整メモを作るための補助ツールです。
+
+

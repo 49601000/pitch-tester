@@ -629,6 +629,7 @@
         hz: 570,
         duration: 0.25,
         audioContext: null,
+        audioUnlocked: false,
         objectUrl: null,
         progressTimer: null
       };
@@ -657,7 +658,7 @@
       const sourceAudio = new Audio();
       sourceAudio.preload = "metadata";
 
-      function ensureAudioContext() {
+      function getAudioContext() {
         const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextCtor) {
           throw new Error("このブラウザはWeb Audio APIに対応していません。");
@@ -667,37 +668,59 @@
           state.audioContext = new AudioContextCtor();
         }
 
-        if (state.audioContext.state === "suspended") {
-          return state.audioContext.resume().then(() => state.audioContext);
-        }
+        return state.audioContext;
+      }
 
-        return Promise.resolve(state.audioContext);
+      function resumeAudioContext(ctx) {
+        if (ctx.state === "suspended" && typeof ctx.resume === "function") {
+          ctx.resume().catch(() => {
+            showToast("音声の有効化に失敗しました。もう一度タップしてください。");
+          });
+        }
+      }
+
+      function unlockAudioContext() {
+        if (state.audioUnlocked) return;
+
+        try {
+          const ctx = getAudioContext();
+          resumeAudioContext(ctx);
+
+          const source = ctx.createBufferSource();
+          source.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+          source.connect(ctx.destination);
+          source.start(0);
+          state.audioUnlocked = true;
+        } catch (error) {
+          showToast(error.message || "音声を有効化できませんでした。もう一度タップしてください。");
+        }
       }
 
       function playTone(hz = state.hz) {
-        ensureAudioContext()
-          .then((ctx) => {
-            const now = ctx.currentTime;
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            const end = now + state.duration;
+        try {
+          const ctx = getAudioContext();
+          resumeAudioContext(ctx);
 
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(hz, now);
+          const now = ctx.currentTime + 0.01;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const end = now + state.duration;
 
-            gain.gain.setValueAtTime(0.0001, now);
-            gain.gain.exponentialRampToValueAtTime(0.18, now + 0.015);
-            gain.gain.setValueAtTime(0.18, Math.max(now + 0.02, end - 0.04));
-            gain.gain.exponentialRampToValueAtTime(0.0001, end);
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(hz, now);
 
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(now);
-            osc.stop(end + 0.02);
-          })
-          .catch((error) => {
-            showToast(error.message || "仮ピッチ音を鳴らせませんでした。");
-          });
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.18, now + 0.015);
+          gain.gain.setValueAtTime(0.18, Math.max(now + 0.02, end - 0.04));
+          gain.gain.exponentialRampToValueAtTime(0.0001, end);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(end + 0.02);
+        } catch (error) {
+          showToast(error.message || "仮ピッチ音を鳴らせませんでした。");
+        }
       }
 
       function renderPad() {
@@ -933,9 +956,15 @@
         }
       });
 
+      ["pointerdown", "touchend"].forEach((eventName) => {
+        window.addEventListener(eventName, unlockAudioContext, { once: true, passive: true });
+      });
+
       renderPad();
       updateStatus();
     })();
   </script>
 </body>
 </html>
+
+
